@@ -113,54 +113,67 @@ def draw_label(image, bbox, label, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=0.5
 # Flask app
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode = 'threading')
+
+is_streaming = False
 
 def detect_and_stream():
-    video_read = cv2.VideoCapture(0)
-    while True:
-        ret_val, img = video_read.read()
-        if not ret_val:
-            break
+    global is_streaming
+    
+    if is_streaming:
+        print("Stream already active, skipping...")
+        return
+    is_streaming = True
 
-        h, w = img.shape[:2]
-        blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0), swapRB=False, crop=False)
-        faceNet.setInput(blob)
-        detections = faceNet.forward()
+    try:
 
-        detected = False
-        for i in range(detections.shape[2]):
-            confidence = detections[0, 0, i, 2]
-            if confidence > 0.7:
-                detected = True
-                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                (startX, startY, endX, endY) = box.astype("int")
+        video_read = cv2.VideoCapture(0)
+        while True:
+            ret_val, img = video_read.read()
+            if not ret_val:
+                break
 
-                cropped_image = crop_with_padding(img, box.astype(int), 20)
-                gender = genderAge(cropped_image)
+            h, w = img.shape[:2]
+            blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0), swapRB=False, crop=False)
+            faceNet.setInput(blob)
+            detections = faceNet.forward()
 
-                draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
+            detected = False
+            for i in range(detections.shape[2]):
+                confidence = detections[0, 0, i, 2]
+                if confidence > 0.7:
+                    detected = True
+                    box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                    (startX, startY, endX, endY) = box.astype("int")
 
-                label = f"Person Detected: {detected}\nGender: {gender}"
-                draw_label(img, (startX, startY, endX, endY), label)
+                    cropped_image = crop_with_padding(img, box.astype(int), 20)
+                    gender = genderAge(cropped_image)
 
-                #send data to front end
-                if detected:
-                    socketio.emit('detection', {'gender': gender})  # Emit gender if detected
-                    print(f"Emitting gender: {gender}")
-                else:
-                    socketio.emit('detection', {'gender': None})  # Emit empty gender when no detection
-                    print("Emitting no detection")
+                    draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
+
+                    label = f"Person Detected: {detected}\nGender: {gender}"
+                    draw_label(img, (startX, startY, endX, endY), label)
+
+                    #send data to front end
+                    if detected:
+                        socketio.emit('detection', {'gender': gender})  # Emit gender if detected
+                        print(f"Emitting gender: {gender}")
+                    else:
+                        socketio.emit('detection', {'gender': None})  # Emit empty gender when no detection
+                        print("Emitting no detection")
 
 
-        if not detected:
-            cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            if not detected:
+                cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-        # Encode the frame for streaming
-        _, buffer = cv2.imencode('.jpg', img)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            # Encode the frame for streaming
+            _, buffer = cv2.imencode('.jpg', img)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-    video_read.release()
+    finally:
+        is_streaming = False
+        video_read.release()
 
 @app.route('/')
 def index():
