@@ -3,39 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Person Detection</title>
+    <title>Gender Detection</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            padding: 20px;
+            text-align: center;
         }
-        h1 {
+        #video-feed {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 80%;
+            height: auto;
+        }
+        #gender-status {
+            font-size: 24px;
             color: #333;
-        }
-        #video-container {
-            margin: 20px;
-            border: 2px solid #007bff;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        video {
-            width: 640px;
-            height: 480px;
-            display: block;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Real-Time Person Detection</h1>
-    <div id="video-container">
-        <img src="/video_feed" alt="Video stream">
-    </div>
+    <h1>Real-Time Gender Detection</h1>
+    <img id="video-feed" src="/video_feed" alt="Video feed">
+    <p id="gender-status">Waiting for detection...</p>
+
+    <script>
+        const socket = io("http://127.0.0.1:5000"); // Replace with your backend URL
+
+        // Log successful connection
+        socket.on("connect", () => {
+            console.log("Connected to the server");
+        });
+
+        // Listen for detection events
+        socket.on("detection", (data) => {
+            console.log("Received detection data:", data);
+            const genderStatus = document.getElementById("gender-status");
+            if (data.gender) {
+                genderStatus.textContent = `Gender Detected: ${data.gender}`;
+                genderStatus.style.color = "green";
+            } else {
+                genderStatus.textContent = "No Person Detected";
+                genderStatus.style.color = "red";
+            }
+        });
+
+    </script>
 </body>
 </html>

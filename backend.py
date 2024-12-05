@@ -1,6 +1,8 @@
 from flask import Flask, render_template, Response, jsonify
 import cv2
 import numpy as np
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 
 # Load models (same as your provided code)
 faceModel = "model/model/facenet/opencv_face_detector_uint8.pb"
@@ -16,8 +18,102 @@ ageNet = cv2.dnn.readNet(ageModel, ageProto)
 genderNet = cv2.dnn.readNet(genderModel, genderProto)
 emotionNet = cv2.dnn.readNetFromONNX(emotionModel)
 
+def genderAge(image):
+
+    MODEL_MEAN_VALUES=(78.4263377603, 87.7689143744, 114.895847746)
+    genderList=['Male','Female']
+    blob = cv2.dnn.blobFromImage(image, 1.0, (227,227), MODEL_MEAN_VALUES, swapRB=False)  
+    genderNet.setInput(blob)
+    genderPreds=genderNet.forward()
+    gender=genderList[genderPreds[0].argmax()]
+    return gender
+
+def crop_with_padding(image, box, padding):
+    # Extract the coordinates from the box
+    startX, startY, endX, endY = box
+
+    # Apply padding to the box
+    startX -= padding
+    startY -= padding
+    endX += padding
+    endY += padding
+
+    # Ensure the coordinates are within the image boundaries
+    startX = max(0, startX)
+    startY = max(0, startY)
+    endX = min(endX, image.shape[1])
+    endY = min(endY, image.shape[0])
+
+    # Crop the image using the adjusted box coordinates
+    cropped_image = image[startY:endY, startX:endX]
+
+    return cropped_image
+
+def draw_rounded_rectangle(image, top_left, bottom_right, color, thickness, radius, dash=False):
+    x1, y1 = top_left
+    x2, y2 = bottom_right
+    
+    if thickness == cv2.FILLED:
+        # Draw filled rectangle in the middle
+        cv2.rectangle(image, (x1 + radius, y1), (x2 - radius, y2), color, cv2.FILLED)
+        cv2.rectangle(image, (x1, y1 + radius), (x2, y2 - radius), color, cv2.FILLED)
+        
+        # Draw four filled circles at the corners
+        cv2.circle(image, (x1 + radius, y1 + radius), radius, color, cv2.FILLED)
+        cv2.circle(image, (x2 - radius, y1 + radius), radius, color, cv2.FILLED)
+        cv2.circle(image, (x1 + radius, y2 - radius), radius, color, cv2.FILLED)
+        cv2.circle(image, (x2 - radius, y2 - radius), radius, color, cv2.FILLED)
+    else:
+        # Draw the four corner arcs
+        cv2.ellipse(image, (x1 + radius, y1 + radius), (radius, radius), 180, 0, 90, color, thickness)
+        cv2.ellipse(image, (x2 - radius, y1 + radius), (radius, radius), 270, 0, 90, color, thickness)
+        cv2.ellipse(image, (x1 + radius, y2 - radius), (radius, radius), 90, 0, 90, color, thickness)
+        cv2.ellipse(image, (x2 - radius, y2 - radius), (radius, radius), 0, 0, 90, color, thickness)
+            
+        cv2.line(image, (x1 + radius, y1), (x2 - radius, y1), color, thickness)
+        cv2.line(image, (x1 + radius, y2), (x2 - radius, y2), color, thickness)
+        cv2.line(image, (x1, y1 + radius), (x1, y2 - radius), color, thickness)
+        cv2.line(image, (x2, y1 + radius), (x2, y2 - radius), color, thickness)
+
+
+def draw_label(image, bbox, label, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=0.5, font_thickness=1):
+    startX, startY, endX, endY = bbox
+
+    # Split label text into lines
+    lines = label.split('\n')
+
+    # Determine the size of the text
+    text_height = cv2.getTextSize('A', font, font_scale, font_thickness)[0][1]
+    text_widths = [cv2.getTextSize(line, font, font_scale, font_thickness)[0][0] for line in lines]
+    max_text_width = max(text_widths)
+
+    # Calculate padding around the text
+    padding_x = 10
+    padding_y = 10
+
+    # Calculate the position for the label background
+    x = startX
+    y = startY - (len(lines) * (text_height + padding_y)) - 10  # Position above the bounding box
+    w = x + max_text_width + (2 * padding_x)
+    h = y + len(lines) * (text_height + padding_y)
+
+    # Ensure the rectangle does not go out of the image boundaries
+    y = max(0, y)
+    h = min(image.shape[0], h)
+
+    # Draw the rounded rectangle background
+    draw_rounded_rectangle(image, (x, y), (w, h), (7, 186, 255), cv2.FILLED, 10)
+
+    # Draw each line of the label text
+    for i, line in enumerate(lines):
+        text_x = x + padding_x
+        text_y = y + padding_y + i * (text_height + padding_y)
+        cv2.putText(image, line, (text_x, text_y), font, font_scale, (30, 30, 30), font_thickness)
+
 # Flask app
 app = Flask(__name__)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def detect_and_stream():
     video_read = cv2.VideoCapture(0)
@@ -38,9 +134,23 @@ def detect_and_stream():
                 detected = True
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (startX, startY, endX, endY) = box.astype("int")
-                cv2.rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 3)
-                label = "Person Detected"
-                cv2.putText(img, label, (startX, startY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+                cropped_image = crop_with_padding(img, box.astype(int), 20)
+                gender = genderAge(cropped_image)
+
+                draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
+
+                label = f"Person Detected: {detected}\nGender: {gender}"
+                draw_label(img, (startX, startY, endX, endY), label)
+
+                #send data to front end
+                if detected:
+                    socketio.emit('detection', {'gender': gender})  # Emit gender if detected
+                    print(f"Emitting gender: {gender}")
+                else:
+                    socketio.emit('detection', {'gender': None})  # Emit empty gender when no detection
+                    print("Emitting no detection")
+
 
         if not detected:
             cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -60,29 +170,13 @@ def index():
 def video_feed():
     return Response(detect_and_stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/detect_person', methods=['GET'])
-def detect_person():
-    """API Endpoint to detect if a person is present."""
-    video_read = cv2.VideoCapture(0)
-    ret_val, img = video_read.read()
-    if not ret_val:
-        video_read.release()
-        return jsonify({"error": "Could not access camera"}), 500
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
 
-    h, w = img.shape[:2]
-    blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0), swapRB=False, crop=False)
-    faceNet.setInput(blob)
-    detections = faceNet.forward()
-
-    detected = False
-    for i in range(detections.shape[2]):
-        confidence = detections[0, 0, i, 2]
-        if confidence > 0.7:
-            detected = True
-            break
-
-    video_read.release()
-    return jsonify({"person_detected": detected})
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("Client disconnected")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    socketio.run(app, debug=True)
