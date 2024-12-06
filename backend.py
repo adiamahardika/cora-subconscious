@@ -128,7 +128,7 @@ def detect_and_stream():
     try:
 
         video_read = cv2.VideoCapture(0)
-        previous_detection = False
+        previous_boxes = []
 
         while True:
             ret_val, img = video_read.read()
@@ -141,30 +141,37 @@ def detect_and_stream():
             detections = faceNet.forward()
 
             detected = False
-            gender = None
+            
+            current_boxes = []
             for i in range(detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
                 if confidence > 0.7:
                     detected = True
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
+                    current_boxes.append((startX, startY, endX, endY))
 
-                    cropped_image = crop_with_padding(img, box.astype(int), 20)
-                    gender = genderAge(cropped_image)
+                    is_new_detection = True
+                    for prev_box in previous_boxes:
+                        iou = calculate_iou(prev_box, (startX, startY, endX, endY))
+                        if iou > 0.5:
+                            is_new_detection = False
+                            break
+                    
+                    if is_new_detection:
+                        cropped_image = crop_with_padding(img, box.astype(int), 20)
+                        gender = genderAge(cropped_image)
+                        #send data to front end
+                        socketio.emit('detection', {'gender': gender})  # Emit gender if detected
+                        print(f"Emitting gender: {gender}")
 
                     draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
-
                     label = f"Person Detected: {detected}\nGender: {gender}"
                     draw_label(img, (startX, startY, endX, endY), label)
 
-            #send data to front end
-            if detected and not previous_detection:
-                socketio.emit('detection', {'gender': gender})  # Emit gender if detected
-                print(f"Emitting gender: {gender}")
+            previous_boxes = current_boxes
             
-            previous_detection = detected
-            
-            if not detected:
+            if not current_boxes:
                 cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
             # Encode the frame for streaming
@@ -175,6 +182,25 @@ def detect_and_stream():
     finally:
         is_streaming = False
         video_read.release()
+
+def calculate_iou(box1, box2):
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    # Calculate the intersection area
+    intersection = max(0, x2 - x1) * max(0, y2 - y1)
+
+    # Calculate the union area
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union = box1_area + box2_area - intersection
+
+    # Return IoU
+    if union == 0:
+        return 0
+    return intersection / union
 
 @app.route('/')
 def index():
