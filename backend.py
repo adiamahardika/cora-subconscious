@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+from ai_speech import ai_speech_bp  # Import your Blueprint
 
 # Load models (same as your provided code)
 faceModel = "model/model/facenet/opencv_face_detector_uint8.pb"
@@ -115,6 +116,8 @@ app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode = 'threading')
 
+app.register_blueprint(ai_speech_bp, url_prefix='/ai_speech')
+
 is_streaming = False
 
 def detect_and_stream():
@@ -209,6 +212,17 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     return Response(detect_and_stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+# def send_ping_to_frontend():
+#     print("Emitting ping to frontend")  # Log the event emission
+#     socketio.emit('ping', {'message': 'female'})
+
+# @app.route('/trigger-ping', methods=['GET'])
+# def trigger_ping():
+#     send_ping_to_frontend()
+#     return jsonify({'status': 'Ping sent successfully'})
+
 
 @socketio.on('connect')
 def handle_connect():
