@@ -1,3 +1,5 @@
 ai_speech/config/tts-frontdesk-79a0044d0419.json
 
-.venv/
+venv/
+
+.env
