@@ -3,12 +3,23 @@ from flask import request, jsonify
 import os
 from flask_socketio import SocketIO
 from .. import ai_speech_bp
+from dotenv import load_dotenv
 # Get the absolute path to the config file
 # Get the directory of the current file
+
+env_path = os.path.join(os.path.dirname(__file__), "../", ".env")
+
 current_dir = os.path.dirname(__file__)
 
+
+load_dotenv(dotenv_path=env_path)
+
+config_dir_env = os.getenv('CONFIG_FILE_PATH')
+
+
 config_dir = os.path.abspath(os.path.join(os.path.dirname(
-    __file__), "../config/tts-frontdesk-79a0044d0419.json"))
+    __file__), config_dir_env))
+
 print(f"Config file path: {config_dir}")
 
 if not os.path.isfile(config_dir):
