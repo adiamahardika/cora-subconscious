@@ -128,6 +128,8 @@ def detect_and_stream():
     try:
 
         video_read = cv2.VideoCapture(0)
+        previous_detection = False
+
         while True:
             ret_val, img = video_read.read()
             if not ret_val:
@@ -139,6 +141,7 @@ def detect_and_stream():
             detections = faceNet.forward()
 
             detected = False
+            gender = None
             for i in range(detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
                 if confidence > 0.7:
@@ -154,15 +157,13 @@ def detect_and_stream():
                     label = f"Person Detected: {detected}\nGender: {gender}"
                     draw_label(img, (startX, startY, endX, endY), label)
 
-                    #send data to front end
-                    if detected:
-                        socketio.emit('detection', {'gender': gender})  # Emit gender if detected
-                        print(f"Emitting gender: {gender}")
-                    else:
-                        socketio.emit('detection', {'gender': None})  # Emit empty gender when no detection
-                        print("Emitting no detection")
-
-
+            #send data to front end
+            if detected and not previous_detection:
+                socketio.emit('detection', {'gender': gender})  # Emit gender if detected
+                print(f"Emitting gender: {gender}")
+            
+            previous_detection = detected
+            
             if not detected:
                 cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
