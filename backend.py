@@ -4,6 +4,7 @@ import numpy as np
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from ai_speech import ai_speech_bp  # Import your Blueprint
+import time
 
 # Load models (same as your provided code)
 faceModel = "model/model/facenet/opencv_face_detector_uint8.pb"
@@ -118,6 +119,24 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode = 'threading')
 
 app.register_blueprint(ai_speech_bp, url_prefix='/ai_speech')
 
+tracked_persons = {}
+IOU_THRESHOLD = 0.1
+ABSENCE_TIME = 2.0
+
+def is_new_detection(box, current_time):
+    global tracked_persons
+
+    # Remove old entries
+    tracked_persons = {k: v for k, v in tracked_persons.items() if current_time - v[1] <= ABSENCE_TIME}
+    
+    for box_id, (tracked_box, last_seen) in tracked_persons.items():
+        iou = calculate_iou(box, tracked_box)
+        if iou > IOU_THRESHOLD:
+            tracked_persons[box_id] = (box, current_time)
+            return False
+        
+    return True
+
 is_streaming = False
 
 def detect_and_stream():
@@ -144,26 +163,20 @@ def detect_and_stream():
             detections = faceNet.forward()
 
             detected = False
-            
+            current_time = time.time()
             current_boxes = []
             for i in range(detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
-                if confidence > 0.7:
+                if confidence > 0.8:
                     detected = True
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
                     current_boxes.append((startX, startY, endX, endY))
-
-                    is_new_detection = True
-                    for prev_box in previous_boxes:
-                        iou = calculate_iou(prev_box, (startX, startY, endX, endY))
-                        if iou > 0.5:
-                            is_new_detection = False
-                            break
                     
-                    if is_new_detection:
+                    if is_new_detection((startX, startY, endX, endY), current_time):
                         cropped_image = crop_with_padding(img, box.astype(int), 20)
                         gender = genderAge(cropped_image)
+                        tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
                         #send data to front end
                         socketio.emit('detection', {'gender': gender})  # Emit gender if detected
                         print(f"Emitting gender: {gender}")
