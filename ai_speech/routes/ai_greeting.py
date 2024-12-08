@@ -4,6 +4,9 @@ import os
 from flask_socketio import SocketIO
 from .. import ai_speech_bp
 from dotenv import load_dotenv
+from transformers import AutoProcessor, BarkModel
+import scipy
+
 # Get the absolute path to the config file
 # Get the directory of the current file
 
@@ -28,6 +31,12 @@ if not os.path.isfile(config_dir):
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = config_dir
 llm = ChatGoogleGenerativeAI(model="gemini-pro")
 
+
+# # Load tokenizer and model
+# model_name = "EleutherAI/gpt-neo-125M"  # Use other sizes if needed
+# tokenizer = AutoTokenizer.from_pretrained(model_name)
+# model = AutoModelForCausalLM.from_pretrained(model_name)
+
 @ai_speech_bp.route('/generate-greeting', methods=['POST'])
 def synthesize_greeting():
     if request.is_json:
@@ -47,6 +56,22 @@ def synthesize_greeting():
     if not generated_text:
         return jsonify({'error': 'No response generated from LLM'}), 400
     
+    processor = AutoProcessor.from_pretrained("suno/bark")
+
+
+    model = BarkModel.from_pretrained("suno/bark")
+
+    voice_preset = "v2/en_speaker_6"
+
+    inputs = processor(generated_text, voice_preset=voice_preset)
+
+    audio_array = model.generate(**inputs)
+    audio_array = audio_array.cpu().numpy().squeeze()
+    
+    sample_rate = model.generation_config.sample_rate   
+
+    scipy.io.wavfile.write("bark_out.wav", rate=sample_rate, data=audio_array)
+
     
 
     # Return the generated text to the frontend
