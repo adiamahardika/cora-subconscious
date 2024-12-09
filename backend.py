@@ -176,9 +176,10 @@ def detect_and_stream():
                     if is_new_detection((startX, startY, endX, endY), current_time):
                         cropped_image = crop_with_padding(img, box.astype(int), 20)
                         gender = genderAge(cropped_image)
+                        detection_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
                         tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
                         #send data to front end
-                        socketio.emit('detection', {'gender': gender})  # Emit gender if detected
+                        socketio.emit('detection', {'gender': gender, 'time': detection_time})  # Emit gender if detected
                         print(f"Emitting gender: {gender}")
 
                     draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)

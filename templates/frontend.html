@@ -31,6 +31,7 @@
     <h1>Real-Time Gender Detection</h1>
     <img id="video-feed" src="/video_feed" alt="Video feed">
     <p id="gender-status">Waiting for detection...</p>
+    <p id="detection-time"></p>
 
     <script>
         const socket = io("http://127.0.0.1:5000"); // Replace with your backend URL
@@ -45,12 +46,21 @@
         socket.on("detection", (data) => {
             console.log("Received detection data:", data);
             const genderStatus = document.getElementById("gender-status");
+            const detectionTime = document.getElementById("detection-time");
+
             if (data.gender) {
                 genderStatus.textContent = `Gender Detected: ${data.gender}`;
                 genderStatus.style.color = "green";
+                
+                detectionTime.textContent = `Detection Time: ${data.time}`;
+                detectionTime.style.color = "blue";
+
+
             } else {
                 genderStatus.textContent = "No Person Detected";
                 genderStatus.style.color = "red";
+
+                detectionTime.textContent = "";
             }
         });
 
