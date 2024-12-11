@@ -5,3 +5,5 @@ venv/
 .env
 
 ai_speech/routes/testing/
+
+node_modules/
