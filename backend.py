@@ -6,7 +6,7 @@ from flask_cors import CORS
 from ai_speech import ai_speech_bp  # Import your Blueprint
 import time
 
-# Load models (same as your provided code)
+# Load models
 faceModel = "model/model/facenet/opencv_face_detector_uint8.pb"
 faceProto = "model/model/facenet/opencv_face_detector.pbtxt"
 ageModel = "model/model/age/age_net.caffemodel"
@@ -45,6 +45,9 @@ def crop_with_padding(image, box, padding):
     startY = max(0, startY)
     endX = min(endX, image.shape[1])
     endY = min(endY, image.shape[0])
+
+    if startX >= endX or startY >= endY:
+        return None
 
     # Crop the image using the adjusted box coordinates
     cropped_image = image[startY:endY, startX:endX]
@@ -122,6 +125,7 @@ app.register_blueprint(ai_speech_bp, url_prefix='/ai_speech')
 tracked_persons = {}
 IOU_THRESHOLD = 0.1
 ABSENCE_TIME = 2.0
+MIN_BOX_AREA = 500
 
 def is_new_detection(box, current_time):
     global tracked_persons
@@ -171,10 +175,19 @@ def detect_and_stream():
                     detected = True
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
+
+                    box_area = (endX - startX) * (endY - startY)
+                    if box_area < MIN_BOX_AREA:
+                        continue
+
                     current_boxes.append((startX, startY, endX, endY))
                     
                     if is_new_detection((startX, startY, endX, endY), current_time):
                         cropped_image = crop_with_padding(img, box.astype(int), 20)
+
+                        if cropped_image is None or cropped_image.size == 0:
+                            continue
+
                         gender = genderAge(cropped_image)
                         detection_time = time.strftime("%H:%M:%S", time.localtime(current_time))
                         tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
