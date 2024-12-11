@@ -10,6 +10,8 @@ from transformers import AutoProcessor, BarkModel
 import scipy
 from openai import OpenAI
 import pyaudio
+import time
+import io
 
 # Get the absolute path to the config file
 # Get the directory of the current file
@@ -102,32 +104,34 @@ def generate_audio():
     data = request.json
     text = data.get("text")
     gender = data.get("gender")
-    
-    print (gender)
 
     if not text:
         return jsonify({"error": "Text is required"}), 400
 
+    # Choose voice based on gender
     voice = "alloy" if gender == "male" else "nova" if gender == "female" else "alloy"
-    
-    print (voice)
 
-    if not voice:
-        return jsonify({"error": "Invalid gender"}), 400
+    try:
+        # Generate audio
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=text,
+            response_format="wav"
+        )
+        buffer = io.BytesIO()
 
-    def audio_stream():
-        try:
-            response = client.audio.speech.create(
-                model="tts-1",
-                voice=voice,
-                input=text,
-                response_format="wav",  # Raw audio format
-            )
-            for chunk in response.iter_bytes(1024):
-                yield chunk
-        except Exception as e:
-            print(f"Error generating audio: {e}")
-            return  # Stop the generator on error
-        
-        
-    return Response(audio_stream(), content_type="audio/wav")
+        # Accumulate the audio chunks into the buffer
+        for chunk in response.iter_bytes(1024):
+            buffer.write(chunk)
+
+        # Return the audio as a single Blob
+        buffer.seek(0)
+        return Response(
+            buffer,
+            content_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=audio.wav"}
+        )
+    except Exception as e:
+        print(f"Error generating audio: {e}")
+        return jsonify({"error": str(e)}), 500
