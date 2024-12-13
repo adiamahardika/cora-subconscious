@@ -106,3 +106,5 @@ Werkzeug==3.1.3
 wsproto==1.2.0
 zope.event==5.0
 zope.interface==7.2
+openai==1.57.2
+PyAudio==0.2.14
