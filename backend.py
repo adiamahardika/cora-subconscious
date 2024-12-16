@@ -24,11 +24,18 @@ def genderAge(image):
 
     MODEL_MEAN_VALUES=(78.4263377603, 87.7689143744, 114.895847746)
     genderList=['Male','Female']
-    blob = cv2.dnn.blobFromImage(image, 1.0, (227,227), MODEL_MEAN_VALUES, swapRB=False)  
+    emotionList = ['neutral', 'happy', 'surprise', 'sad', 'angry', 'disgust', 'fear']
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blob = cv2.dnn.blobFromImage(image, 1.0, (227,227), MODEL_MEAN_VALUES, swapRB=False)
+    blob2 = cv2.dnn.blobFromImage(gray_image, 1.0, (64, 64), MODEL_MEAN_VALUES, swapRB=False)
+    blob2 = blob2.reshape(1, 1, 64, 64)  
     genderNet.setInput(blob)
     genderPreds=genderNet.forward()
     gender=genderList[genderPreds[0].argmax()]
-    return gender
+    emotionNet.setInput(blob2)
+    emotionPreds=emotionNet.forward()
+    emotion=emotionList[emotionPreds[0].argmax()]
+    return gender, emotion
 
 def crop_with_padding(image, box, padding):
     # Extract the coordinates from the box
@@ -188,15 +195,15 @@ def detect_and_stream():
                         if cropped_image is None or cropped_image.size == 0:
                             continue
 
-                        gender = genderAge(cropped_image)
+                        gender, emotion = genderAge(cropped_image)
                         detection_time = time.strftime("%H:%M:%S", time.localtime(current_time))
                         tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
                         #send data to front end
-                        socketio.emit('detection', {'gender': gender, 'time': detection_time})  # Emit gender if detected
-                        print(f"Emitting gender: {gender}")
+                        socketio.emit('detection', {'gender': gender, 'emotion': emotion, 'time': detection_time})  # Emit gender if detected
+                        print(f"Emitting gender: {gender} and emotion: {emotion}")
 
                     draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
-                    label = f"Person Detected: {detected}\nGender: {gender}"
+                    label = f"Person Detected: {detected}\nGender: {gender}\nEmotion: {emotion}"
                     draw_label(img, (startX, startY, endX, endY), label)
 
             previous_boxes = current_boxes

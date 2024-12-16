@@ -31,6 +31,7 @@
     <h1>Real-Time Gender Detection</h1>
     <img id="video-feed" src="/video_feed" alt="Video feed">
     <p id="gender-status">Waiting for detection...</p>
+    <p id="emotion-status"></p>
     <p id="detection-time"></p>
 
     <script>
@@ -46,11 +47,15 @@
         socket.on("detection", (data) => {
             console.log("Received detection data:", data);
             const genderStatus = document.getElementById("gender-status");
+            const emotionStatus = document.getElementById("emotion-status");
             const detectionTime = document.getElementById("detection-time");
 
             if (data.gender) {
                 genderStatus.textContent = `Gender Detected: ${data.gender}`;
                 genderStatus.style.color = "green";
+
+                emotionStatus.textContent = `Emotion Detected: ${data.emotion}`;
+                emotionStatus.style.color = 'green';
                 
                 detectionTime.textContent = `Detection Time: ${data.time}`;
                 detectionTime.style.color = "blue";
