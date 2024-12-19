@@ -160,7 +160,12 @@ def detect_and_stream():
 
     try:
 
+        #if you prefer to use laptop webcam, use this code    
         video_read = cv2.VideoCapture(0)
+
+        #if external camera is used, use this code
+        #video_read = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        
         previous_boxes = []
 
         while True:
