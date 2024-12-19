@@ -46,7 +46,16 @@ def synthesize_greeting():
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a Robot assistant helping give guidance to your user"},
-            {"role": "user", "content": f"Generate a Greeting based on the person's gender which is {text_gender} and time of day which is {text_time}, do not make it personal and make it short and concise, include a short prefix in the sentence based on the person's gender, don't use names or placeholders for example: Good Morning Miss, How can I help you? or Good Morning Sir, How can I help you?. The user's current emotion is {text_emotion}, adjust the message to match the user's current mood, for example, if the user is feeling sad, cheer up the user in the message. if the person if feeling neutral. Answer using bahasa indonesia."}
+            {"role": "user", "content":   f"Generate a Greeting based on the person's gender which is {text_gender} "
+             f"and time of day which is {text_time}. Do not make it personal and make it "
+             f"short and concise. Include a short prefix in the sentence based on the "
+             f"person's gender. Don't use names or placeholders. For example: 'Good Morning Miss, "
+             f"How can I help you?' or 'Good Morning Sir, How can I help you?'. "
+             f"The user's current emotion is {text_emotion}. Adjust the message to match "
+             f"the user's current mood. For example, if the user is feeling sad, cheer up "
+             f"the user in the message. If the user is feeling neutral, keep the tone neutral."
+             f"generate the response to the user with your current mood in mind, your current mood is {text_ai_mood}"
+             }
         ]
     )
 
