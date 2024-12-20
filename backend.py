@@ -161,12 +161,21 @@ def detect_and_stream():
     try:
 
         #if you prefer to use laptop webcam, use this code    
-        video_read = cv2.VideoCapture(0)
+        #video_read = cv2.VideoCapture(0)
 
         #if external camera is used, use this code
-        #video_read = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        video_read = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         
         previous_boxes = []
+
+        last_emit_time = 0
+        emit_delay = 3
+        they_emitted = False
+        previous_detected_count = 0
+
+        # set bounding box size
+        #MIN_BOX_WIDTH = 150
+        #MIN_BOX_HEIGHT = 150
 
         while True:
             ret_val, img = video_read.read()
@@ -181,17 +190,32 @@ def detect_and_stream():
             detected = False
             current_time = time.time()
             current_boxes = []
+            detected_count = 0
+            detection_data = []
+
             for i in range(detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
                 if confidence > 0.8:
-                    detected = True
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
 
+                    #detects close distance
+                    # Calculate bounding box dimensions
+                    #box_width = endX - startX
+                    #box_height = endY - startY
+
+                    # Filter by bounding box size (proximity)
+                    #if box_width < MIN_BOX_WIDTH or box_height < MIN_BOX_HEIGHT:
+                    #    print(f"Skipping detection: Too far (Width: {box_width}, Height: {box_height})")
+                    #    continue
+
+                    # detects anything
                     box_area = (endX - startX) * (endY - startY)
                     if box_area < MIN_BOX_AREA:
                         continue
-
+                    
+                    detected_count += 1
+                    detected = True
                     current_boxes.append((startX, startY, endX, endY))
                     
                     if is_new_detection((startX, startY, endX, endY), current_time):
@@ -201,15 +225,39 @@ def detect_and_stream():
                             continue
 
                         gender, emotion = genderAge(cropped_image)
+
+                        if detected_count > 1:
+                            gender = "They"
+                            emotion = "neutral"
+
                         detection_time = time.strftime("%H:%M:%S", time.localtime(current_time))
                         tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
-                        #send data to front end
-                        socketio.emit('detection', {'gender': gender, 'emotion': emotion, 'time': detection_time})  # Emit gender if detected
-                        print(f"Emitting gender: {gender} and emotion: {emotion}")
-
+                        detection_data.append({'gender': gender, 'emotion': emotion, 'time': detection_time})
+                        
                     draw_rounded_rectangle(img, (startX, startY), (endX, endY), (255, 103, 7), 4, radius=10, dash=True)
                     label = f"Person Detected: {detected}\nGender: {gender}\nEmotion: {emotion}"
                     draw_label(img, (startX, startY, endX, endY), label)
+            
+            # Emit "They" data only if it hasn't been emitted yet
+            if detected_count > 1 and not they_emitted:
+                detection_time = time.strftime("%H:%M:%S", time.localtime(current_time))
+                they_data = {'gender': "They", 'emotion': "neutral", 'time': detection_time}
+                socketio.emit('detection', they_data)
+                print(f"Emitting gender: {they_data['gender']} and emotion: {they_data['emotion']}")
+                they_emitted = True  # Mark that "They" has been emitted
+            
+            # Reset "They" flag if no multiple detections
+            if detected_count <= 1 and previous_detected_count > 1:
+                they_emitted = False
+            
+            # Emit data only if delay time has passed for individual detections
+            if current_time - last_emit_time >= emit_delay:
+                if detected_count > 0:
+                    for data in detection_data:
+                        #send data to front end
+                        socketio.emit('detection', data)  # Emit gender if detected
+                        print(f"Emitting gender: {data['gender']} and emotion: {data['emotion']}")
+                    last_emit_time = current_time
 
             previous_boxes = current_boxes
             
