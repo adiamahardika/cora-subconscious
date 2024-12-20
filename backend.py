@@ -161,10 +161,10 @@ def detect_and_stream():
     try:
 
         #if you prefer to use laptop webcam, use this code    
-        #video_read = cv2.VideoCapture(0)
+        video_read = cv2.VideoCapture(0)
 
         #if external camera is used, use this code
-        video_read = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        #video_read = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         
         previous_boxes = []
 
@@ -247,11 +247,11 @@ def detect_and_stream():
                 they_emitted = True  # Mark that "They" has been emitted
             
             # Reset "They" flag if no multiple detections
-            if detected_count <= 1 and previous_detected_count > 1:
+            if detected_count < 2:
                 they_emitted = False
             
             # Emit data only if delay time has passed for individual detections
-            if current_time - last_emit_time >= emit_delay:
+            if detected_count == 1 and current_time - last_emit_time >= emit_delay:
                 if detected_count > 0:
                     for data in detection_data:
                         #send data to front end
