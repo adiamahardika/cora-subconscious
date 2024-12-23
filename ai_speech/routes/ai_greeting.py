@@ -46,25 +46,22 @@ def synthesize_greeting():
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a Robot assistant helping give guidance to your user"},
-            {"role": "user", "content":   f"Generate a Greeting based on the person's gender which is {text_gender}"
-             f"and time of day which is {
-                 text_time}. Do not make it personal and make it "
-             f"short and concise. Include a short prefix in the sentence based on the "
-             f"person's gender. Don't use names or placeholders. For example: 'Good Morning Miss, "
-             f"How can I help you?' or 'Good Morning Sir, How can I help you?'. "
-             f"If the gender is They, assume that they are a part of a group and adjust the greeting based on this assumption, for example if a group appears, a greeting can be: Hello everyone, how can I help you?"
-             f"If the gender of the user is They, do not use gender based acronym for groups of people such as gentlemen, sir, miss, or other similar words when the gender is they, also do not use words like team or other group adjectives and instead stick to more neutral words like everyone"
-             f"The user's current emotion is {
-                 text_emotion}. Adjust the message to match "
-             f"the user's current mood. For example, if the user is feeling sad, cheer up "
-             f"the user in the message. If the user is feeling neutral, keep the tone neutral."
-             f"generate the response to the user with your current mood in mind, your current mood is {
-                 text_ai_mood}"
-             }
-        ]
-    )
-
+            {"role": "system", "content": "You are a helpful robot assistant providing concise and polite greetings."},
+            {"role": "user", "content": (
+                f"Generate a Greeting based on the person's gender ({text_gender}) and time of day ({text_time}). "
+                f"Keep it short, polite, and professional. For example, 'Good Morning Miss, how can I help you?' "
+                f"or 'Good Morning Sir, how can I help you?'. If the gender is 'They', assume it refers to a group "
+                f"and use neutral terms like 'Hello everyone, how can I help you?' Avoid gender-specific terms such "
+                f"as 'gentlemen', 'miss', or 'team' for 'They'. Always ensure greetings for 'They' are group-appropriate "
+                f"and address the group as a whole rather than individuals."
+                f"Adjust the tone based on the user's emotion ({text_emotion}). For example, if the user is sad, use a "
+                f"cheerful tone. If neutral, keep the tone calm. Generate with your cheerful mood ({text_ai_mood})."
+                 )
+            }
+            ],
+        temperature=1.0,  # Increase for more randomness
+        top_p=0.9,        # Nucleus sampling
+        )
     # Get the response text from LLM
     generated_text = completion.choices[0].message.content
 
