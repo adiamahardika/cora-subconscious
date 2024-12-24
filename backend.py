@@ -226,10 +226,6 @@ def detect_and_stream():
 
                         gender, emotion = genderAge(cropped_image)
 
-                        if detected_count > 1:
-                            gender = "They"
-                            emotion = "neutral"
-
                         detection_time = time.strftime("%H:%M:%S", time.localtime(current_time))
                         tracked_persons[current_time] = ((startX, startY, endX, endY), current_time)
                         detection_data.append({'gender': gender, 'emotion': emotion, 'time': detection_time})
