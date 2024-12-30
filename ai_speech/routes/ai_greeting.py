@@ -107,7 +107,7 @@ def generate_audio():
         return jsonify({"error": "Text is required"}), 400
 
     # Choose voice based on gender
-    voice = "alloy" if gender == "male" else "nova" if gender == "female" else "alloy"
+    voice = "onyx" if gender == "male" else "nova" if gender == "female" else "alloy"
 
     try:
         # Generate audio
