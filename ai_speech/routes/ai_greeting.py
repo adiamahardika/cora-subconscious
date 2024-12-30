@@ -28,7 +28,7 @@ def synthesize_greeting():
 
     # Extract request parameters
     data = request.get_json()
-    text_gender = data.get('text')
+    text_gender = data.get('user_gender')
     text_time = data.get('time')
     text_emotion = data.get('emotion')
     text_ai_mood = data.get('tone')
@@ -94,11 +94,7 @@ def synthesize_greeting():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': f'Failed to generate greeting: {str(e)}'}), 500
-
-
-# Initialize PyAudio for real-time playback (local playback)
-
-
+    
 
 @ai_speech_bp.route('/generate-audio', methods=['POST'])
 def generate_audio():

@@ -10,6 +10,7 @@ Important!
 3. Installation
 4. Setup
 5. Usage
+6. ai_speech API
 
 ---------------------
 
@@ -52,5 +53,33 @@ This is the backend of the Frontdesk Web Application, the backend is developer u
 
 4. Run the Program
    - Run the command "python backend.py" to run the flask backend of the application.
+
+---------------------
+
+# ai_speech API
+
+There are two API's under the ai_speech module
+
+1. generate-greeting
+
+returns a generated greeting from ChatGPT API in the form of a string, the parameters taken into account are:
+
+User's Gender: text_gender
+User's Current Mood: text_emotion
+AI's Preset Mood: text_ai_mood
+Time of Day: text_time
+
+Parameters to control the output of the AI include the temperature, Top-p (Nucleus Sampling), and Presence Penalty
+
+Generated text is saved to variable generated_text and sent to the front end in the json format.
+
+2. generate-audio
+
+returns a wav file to the front end, the parameters it uses are gender and text:
+
+gender: the preset gender of the voice
+text: text to be turned into speech.
+
+Voice synthesis uses ChatGPT tts models for its TTS capabilities.
 
 ---------------------
