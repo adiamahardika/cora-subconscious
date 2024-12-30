@@ -15,7 +15,7 @@ Important!
 
 # Overview
 
-This is the backend of the Frontdesk Web Application, the backend is developer using Flask and Python
+This is the backend of the Frontdesk Web Application, the backend is developed using Flask and Python
 
 ---------------------
 
