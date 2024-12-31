@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gender Detection</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        #video-feed {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 80%;
+            height: auto;
+        }
+        #gender-status {
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Gender Detection</h1>
+    <img id="video-feed" src="/video_feed" alt="Video feed">
+    <p id="gender-status">Waiting for detection...</p>
+    <p id="emotion-status"></p>
+    <p id="detection-time"></p>
+
+    <script>
+        const socket = io("http://127.0.0.1:5000"); // Replace with your backend URL
+
+        // Log successful connection
+        socket.on("connect", () => {
+            console.log("Connected to the server");
+            document.getElementById("video-feed").src = "/video_feed";
+        });
+
+        // Listen for detection events
+        socket.on("detection", (data) => {
+            console.log("Received detection data:", data);
+            const genderStatus = document.getElementById("gender-status");
+            const emotionStatus = document.getElementById("emotion-status");
+            const detectionTime = document.getElementById("detection-time");
+
+            if (data.gender) {
+                genderStatus.textContent = `Gender Detected: ${data.gender}`;
+                genderStatus.style.color = "green";
+
+                emotionStatus.textContent = `Emotion Detected: ${data.emotion}`;
+                emotionStatus.style.color = 'green';
+                
+                detectionTime.textContent = `Detection Time: ${data.time}`;
+                detectionTime.style.color = "blue";
+
+
+            } else {
+                genderStatus.textContent = "No Person Detected";
+                genderStatus.style.color = "red";
+
+                detectionTime.textContent = "";
+            }
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Disconnected from server. Attempting to reconnect...");
+            socket.connect();
+        });
+
+        const videoFeed = document.getElementById("video-feed");
+
+        // Periodically check if the video feed is still active
+        setInterval(() => {
+            fetch(videoFeed.src)
+                .then((response) => {
+                    if (!response.ok) {
+                        console.warn("Video feed disconnected, reloading...");
+                        videoFeed.src = "/video_feed";
+                    }
+                })
+                .catch(() => {
+                    console.error("Error fetching video feed, reloading...");
+                    videoFeed.src = "/video_feed";
+                });
+        }, 5000);
+
+
+
+    </script>
+</body>
+</html>
