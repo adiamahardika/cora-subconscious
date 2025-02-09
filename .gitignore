@@ -5,3 +5,6 @@ venv/
 ai_speech/routes/testing/
 
 node_modules/
+
+sandbox.ipynb
+sandbox.jsbook

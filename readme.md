@@ -1,85 +1,124 @@
-Important!
 
-# Backend of AI Frontdesk Web Application
----------------------
+# How to Run
 
-# Table of Contents
+## Prerequisites
 
-1. Overview
-2. Requirements
-3. Installation
-4. Setup
-5. Usage
-6. ai_speech API
+- Python 3.9
+- Ensure all required libraries are installed (refer to `requirements.txt`)
 
----------------------
+## Installation
 
-# Overview
+1. **Clone the Repository**
 
-This is the backend of the Frontdesk Web Application, the backend is developed using Flask and Python
+   ```bash
+   git clone <repository_url>
+   cd <repository_folder>
+   ```
 
----------------------
+2. **Create and Activate Virtual Environment (Optional but recommended)**
 
-# Requirements
+   - For Windows:
+     ```bash
+     python -m venv venv
+     .\venv\Scripts\activate
+     ```
+   - For macOS/Linux:
+     ```bash
+     python -m venv venv
+     source venv/bin/activate
+     ```
 
-- Python Version: 3.12.5
-- Environment Variable: Open AI API Key
-- Required Libraries: Refer to requirements.txt
+3. **Install Required Libraries**
 
----------------------
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# Installation
+## Setup
 
-1. Clone the Repository using git clone command.
+1. **Configure the .env File**
 
-2. (Optional) Create a virtual environment in the project folder using python -m venv venv, activate virtual environment using ".\venv\Scripts\activate" for windows and "source venv/bin/activate" for mac.
+   - Create a `.env` file in the root directory of the project.
+   - Add the following environment variable:
+     ```plaintext
+     OPENAI_API_KEY=your_openai_api_key
+     ```
 
-3. Download all required libraries and modules through the requirements.txt file. 
-   - Run the command "pip install -r requirements.txt".
+## Running the Application
 
----------------------
+1. **Set the Flask App Environment Variable**
 
-# Setup
+   - For Windows:
+     ```bash
+     set FLASK_APP=app
+     set FLASK_ENV=development
+     ```
+   - For macOS/Linux:
+     ```bash
+     export FLASK_APP=app
+     export FLASK_ENV=development
+     ```
 
-1. Configure the .env file
-   - The env file should be named .env and be placed in the ai_speech folder.
-   - the env file should contain the environment value for Open AI Key.
-   - the variable should be named "OPENAI_API_KEY"
-   - As of 27/12/2024, the program uses ChatGPT model gpt-4o to accomplish the AI voice synthesize and text generation.
+2. **Run the Flask Application**
 
----------------------
+   ```bash
+   flask run
+   ```
 
-# Usage
+   The application will be available at `http://127.0.0.1:5000/`.
 
-4. Run the Program
-   - Run the command "python backend.py" to run the flask backend of the application.
+## Additional Commands
+- **Initialize the Database**
 
----------------------
+  ```bash
+  flask db init
+  ```
 
-# ai_speech API
+- **Create Database Migrations**
 
-There are two API's under the ai_speech module
+  ```bash
+  flask db migrate -m "migration message"
+  ```
 
-1. generate-greeting
+- **Run Database Migrations**
 
-returns a generated greeting from ChatGPT API in the form of a string, the parameters taken into account are:
+  ```bash
+  flask db upgrade
+  ```
 
-User's Gender: text_gender
-User's Current Mood: text_emotion
-AI's Preset Mood: text_ai_mood
-Time of Day: text_time
 
-Parameters to control the output of the AI include the temperature, Top-p (Nucleus Sampling), and Presence Penalty
+## Testing
 
-Generated text is saved to variable generated_text and sent to the front end in the json format.
+- **Run Tests**
 
-2. generate-audio
+  ```bash
+  pytest
+  ```
 
-returns a wav file to the front end, the parameters it uses are gender and text:
+## AI Speech API
 
-gender: the preset gender of the voice
-text: text to be turned into speech.
+This module uses the ChatGPT model `gpt-4o` for AI voice synthesis and text generation.
 
-Voice synthesis uses ChatGPT tts models for its TTS capabilities.
+There are two APIs under the `ai_speech` module:
 
----------------------
+### 1. Generate Greeting
+
+Returns a generated greeting from the ChatGPT API in the form of a string. The parameters taken into account are:
+
+- **User's Gender:** `text_gender`
+- **User's Current Mood:** `text_emotion`
+- **AI's Preset Mood:** `text_ai_mood`
+- **Time of Day:** `text_time`
+
+Parameters to control the output of the AI include the temperature, Top-p (Nucleus Sampling), and Presence Penalty.
+
+The generated text is saved to the variable `generated_text` and sent to the front end in JSON format.
+
+### 2. Generate Audio
+
+Returns a WAV file to the front end. The parameters it uses are:
+
+- **Gender:** The preset gender of the voice
+- **Text:** Text to be turned into speech
+
+Voice synthesis uses ChatGPT `Text to Speech` models for its capabilities.

@@ -260,14 +260,23 @@ def detect_and_stream():
             if not current_boxes:
                 cv2.putText(img, "No Person Detected", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-            # Encode the frame for streaming
-            _, buffer = cv2.imencode('.jpg', img)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            cv2.namedWindow('Preview', cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+            cv2.imshow('Preview', img)
+
+            
+            # Break the loop if 'q' is pressed
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+            # # Encode the frame for streaming
+            # _, buffer = cv2.imencode('.jpg', img)
+            # frame = buffer.tobytes()
+            # yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     finally:
         is_streaming = False
         video_read.release()
+        cv2.destroyAllWindows()
 
 def calculate_iou(box1, box2):
     x1 = max(box1[0], box2[0])
