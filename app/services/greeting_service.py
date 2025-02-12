@@ -9,7 +9,7 @@ def index():
         data = request.get_json()
 
         schema = Schema.from_dict({
-            "gender": fields.String(required=True, validate=validate.OneOf(["male", "female"])),
+            "gender": fields.String(required=True, validate=validate.OneOf(["Male", "Female"])),
             "time": fields.Time(required=True, format="%H:%M:%S"),
             "emotion": fields.String(required=True, validate=validate.OneOf(["happy", "sad", "angry", "neutral"])),
             "tone": fields.String(required=True, validate=validate.OneOf(["casual", "santai", "profesional"]))
@@ -69,7 +69,7 @@ def conversation():
         data = request.get_json()
 
         schema = Schema.from_dict({
-            "gender": fields.String(required=True, validate=validate.OneOf(["male", "female"])),
+            "gender": fields.String(required=True, validate=validate.OneOf("Male", "Female")),
             "time": fields.Time(required=True, format="%H:%M:%S"),
             "emotion": fields.String(required=True, validate=validate.OneOf(["happy", "sad", "angry", "neutral"])),
             "tone": fields.String(required=True, validate=validate.OneOf(["casual", "santai", "profesional"]))

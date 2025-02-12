@@ -1,13 +1,9 @@
-from flask import jsonify, request
+from flask import render_template, Response
 from app.utils import response 
+import app.object_detection as object_detection
 
 def index():
-    try:
-        page = request.args.get('page', default=1, type=int)
-        page_size = request.args.get('page_size', default=10, type=int)
+    return render_template('frontend.html')
 
-        return response([], None, status="success", message="Hello World")
-
-    except Exception as e:
-        # Handle any exceptions (e.g., database errors)
-        return response([], None, status="error", message=f"An error occurred: {str(e)}")
+def feed():
+    return Response(object_detection.start_inference(), mimetype='multipart/x-mixed-replace; boundary=frame')

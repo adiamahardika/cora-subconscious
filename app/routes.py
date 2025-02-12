@@ -4,6 +4,7 @@ from app.services import home_service, city_service, greeting_service
 bp = Blueprint("routes", __name__)
 
 bp.add_url_rule('/', 'home', home_service.index, methods=['GET'])
+bp.add_url_rule('/video_feed', 'feed', home_service.feed, methods=['GET'])
 
 
 bp.add_url_rule('/cities', 'get_all_cities', city_service.get_all_cities, methods=['GET'])

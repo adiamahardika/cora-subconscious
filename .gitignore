@@ -8,3 +8,25 @@ node_modules/
 
 sandbox.ipynb
 sandbox.jsbook
+__pycache__/
+instance/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.pot
+*.mo
+*.swp
+*.swo
+*.bak
+*.orig
+*.tmp
+*.old
+*.out
+*.pid
+*.coverage
+*.egg-info/
+dist/
+build/

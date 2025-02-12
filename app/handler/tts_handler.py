@@ -37,7 +37,7 @@ class TTSHandler:
         try:
 
             speech_config = speechsdk.SpeechConfig(subscription=api_key, region=service_region)
-            speech_config.speech_synthesis_voice_name = "en-US-JennyMultilingualNeural"
+            speech_config.speech_synthesis_voice_name = "id-ID-ArdiNeural"
 
             output_filename = "app/media/output_speech.wav"
             audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=False, filename=output_filename)
